@@ -29,6 +29,16 @@ async function initDB() {
   `;
 
   await sql`
+    CREATE TABLE IF NOT EXISTS product_sizes (
+      id SERIAL PRIMARY KEY,
+      product_id INTEGER REFERENCES products(id) ON DELETE CASCADE,
+      size INTEGER NOT NULL,
+      stock INTEGER NOT NULL DEFAULT 0,
+      UNIQUE(product_id, size)
+    )
+  `;
+
+  await sql`
     CREATE TABLE IF NOT EXISTS orders (
       id SERIAL PRIMARY KEY,
       customer_name TEXT NOT NULL,
@@ -59,7 +69,17 @@ async function initDB() {
         ('Ultra Sport Pro', 96800, 'sport', 'Chaussures-22.jpeg', 10, 1),
         ('Street Style Elite', 72600, 'sneakers', 'Chaussures-22.jpeg', 12, 1)
     `;
-    console.log('Default products inserted');
+
+    const sizes = [
+      [1, 38, 2], [1, 39, 3], [1, 40, 4], [1, 41, 5], [1, 42, 4], [1, 43, 3], [1, 44, 2],
+      [2, 39, 3], [2, 40, 4], [2, 41, 5], [2, 42, 4], [2, 43, 3],
+      [3, 40, 2], [3, 41, 3], [3, 42, 4], [3, 43, 3], [3, 44, 2], [3, 45, 1],
+      [4, 39, 2], [4, 40, 3], [4, 41, 4], [4, 42, 5], [4, 43, 3], [4, 44, 2],
+    ];
+    for (const [pid, sz, st] of sizes) {
+      await sql`INSERT INTO product_sizes (product_id, size, stock) VALUES (${pid}, ${sz}, ${st})`;
+    }
+    console.log('Default products and sizes inserted');
   }
 }
 
