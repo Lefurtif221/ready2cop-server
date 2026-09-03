@@ -92,12 +92,35 @@ router.get('/stats/overview', auth, async (req, res) => {
     const pendingOrders = await sql`SELECT COUNT(*)::int as count FROM orders WHERE status = 'pending'`;
     const totalProducts = await sql`SELECT COUNT(*)::int as count FROM products`;
     const recentOrders = await sql`SELECT * FROM orders ORDER BY created_at DESC LIMIT 5`;
+
+    // Top products from order items
+    const allOrders = await sql`SELECT items FROM orders WHERE status != 'cancelled'`;
+    const productCount = {};
+    allOrders.forEach(o => {
+      const items = typeof o.items === 'string' ? JSON.parse(o.items) : o.items;
+      items.forEach(item => {
+        const name = item.name || `Produit #${item.id}`;
+        productCount[name] = (productCount[name] || 0) + (item.quantity || item.qty || 1);
+      });
+    });
+    const topProducts = Object.entries(productCount)
+      .map(([name, count]) => ({ name, count }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 6);
+
+    // Orders by status
+    const statusCounts = await sql`SELECT status, COUNT(*)::int as count FROM orders GROUP BY status`;
+    const ordersByStatus = {};
+    statusCounts.forEach(s => { ordersByStatus[s.status] = s.count; });
+
     res.json({
       totalOrders: totalOrders[0].count,
       totalRevenue: totalRevenue[0].sum,
       pendingOrders: pendingOrders[0].count,
       totalProducts: totalProducts[0].count,
       recentOrders: recentOrders.map(o => ({ ...o, items: typeof o.items === 'string' ? JSON.parse(o.items) : o.items })),
+      topProducts,
+      ordersByStatus,
     });
   } catch {
     res.status(500).json({ error: 'Erreur serveur' });
