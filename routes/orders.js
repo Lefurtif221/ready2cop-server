@@ -69,6 +69,9 @@ router.put('/:id', auth, async (req, res) => {
       for (const item of items) {
         if (item.size && item.id) {
           await sql`UPDATE product_sizes SET stock = GREATEST(0, stock - ${item.quantity || 1}) WHERE product_id = ${item.id} AND size = ${item.size}`;
+          // Sync products.stock = sum of all sizes
+          const sumResult = await sql`SELECT COALESCE(SUM(stock),0)::int as total FROM product_sizes WHERE product_id = ${item.id}`;
+          await sql`UPDATE products SET stock = ${sumResult[0].total} WHERE id = ${item.id}`;
         }
       }
     }
@@ -78,6 +81,9 @@ router.put('/:id', auth, async (req, res) => {
       for (const item of items) {
         if (item.size && item.id) {
           await sql`UPDATE product_sizes SET stock = stock + ${item.quantity || 1} WHERE product_id = ${item.id} AND size = ${item.size}`;
+          // Sync products.stock = sum of all sizes
+          const sumResult = await sql`SELECT COALESCE(SUM(stock),0)::int as total FROM product_sizes WHERE product_id = ${item.id}`;
+          await sql`UPDATE products SET stock = ${sumResult[0].total} WHERE id = ${item.id}`;
         }
       }
     }
