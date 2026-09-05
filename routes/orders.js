@@ -59,9 +59,32 @@ router.put('/:id', auth, async (req, res) => {
     const { status, note } = req.body;
     const existing = await sql`SELECT * FROM orders WHERE id = ${parseInt(req.params.id)}`;
     if (existing.length === 0) return res.status(404).json({ error: 'Commande non trouvee' });
+
+    const oldStatus = existing[0].status;
+    const newStatus = status || oldStatus;
+    const items = typeof existing[0].items === 'string' ? JSON.parse(existing[0].items) : existing[0].items;
+
+    // Si on passe a "delivered" : decrementer le stock
+    if (newStatus === 'delivered' && oldStatus !== 'delivered') {
+      for (const item of items) {
+        if (item.size && item.id) {
+          await sql`UPDATE product_sizes SET stock = GREATEST(0, stock - ${item.quantity || 1}) WHERE product_id = ${item.id} AND size = ${item.size}`;
+        }
+      }
+    }
+
+    // Si on quitte "delivered" (ex: annulation) : restaurer le stock
+    if (oldStatus === 'delivered' && newStatus !== 'delivered') {
+      for (const item of items) {
+        if (item.size && item.id) {
+          await sql`UPDATE product_sizes SET stock = stock + ${item.quantity || 1} WHERE product_id = ${item.id} AND size = ${item.size}`;
+        }
+      }
+    }
+
     const result = await sql`
       UPDATE orders SET
-        status = ${status || existing[0].status},
+        status = ${newStatus},
         note = ${note !== undefined ? note : existing[0].note}
       WHERE id = ${parseInt(req.params.id)}
       RETURNING *
