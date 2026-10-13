@@ -67,7 +67,7 @@ router.post('/', auth, upload.single('image'), async (req, res) => {
     if (sizes) {
       const parsed = typeof sizes === 'string' ? JSON.parse(sizes) : sizes;
       for (const s of parsed) {
-        await sql`INSERT INTO product_sizes (product_id, size, stock) VALUES (${product.id}, ${s.size}, ${s.stock || 0})`;
+        await sql`INSERT INTO product_sizes (product_id, size, stock) VALUES (${product.id}, ${String(s.size)}, ${s.stock || 0})`;
       }
     }
     const allSizes = await sql`SELECT size, stock FROM product_sizes WHERE product_id = ${product.id} ORDER BY size`;
@@ -100,7 +100,7 @@ router.put('/:id', auth, upload.single('image'), async (req, res) => {
       const parsed = typeof sizes === 'string' ? JSON.parse(sizes) : sizes;
       await sql`DELETE FROM product_sizes WHERE product_id = ${parseInt(req.params.id)}`;
       for (const s of parsed) {
-        await sql`INSERT INTO product_sizes (product_id, size, stock) VALUES (${parseInt(req.params.id)}, ${s.size}, ${s.stock || 0})`;
+        await sql`INSERT INTO product_sizes (product_id, size, stock) VALUES (${parseInt(req.params.id)}, ${String(s.size)}, ${s.stock || 0})`;
       }
     }
     const allSizes = await sql`SELECT size, stock FROM product_sizes WHERE product_id = ${parseInt(req.params.id)} ORDER BY size`;

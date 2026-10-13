@@ -32,11 +32,20 @@ async function initDB() {
     CREATE TABLE IF NOT EXISTS product_sizes (
       id SERIAL PRIMARY KEY,
       product_id INTEGER REFERENCES products(id) ON DELETE CASCADE,
-      size INTEGER NOT NULL,
+      size TEXT NOT NULL,
       stock INTEGER NOT NULL DEFAULT 0,
       UNIQUE(product_id, size)
     )
   `;
+
+  // Migration: anciennes tailles numeriques -> texte
+  try {
+    await sql`ALTER TABLE product_sizes ALTER COLUMN size TYPE TEXT USING size::TEXT`;
+  } catch {}
+
+  // Migration: anciennes categories casual/sport -> vetements/sacs
+  await sql`UPDATE products SET category = 'vetements' WHERE category = 'casual'`;
+  await sql`UPDATE products SET category = 'sacs' WHERE category = 'sport'`;
 
   await sql`
     CREATE TABLE IF NOT EXISTS orders (
