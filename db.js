@@ -43,9 +43,10 @@ async function initDB() {
     await sql`ALTER TABLE product_sizes ALTER COLUMN size TYPE TEXT USING size::TEXT`;
   } catch {}
 
-  // Migration: anciennes categories casual/sport -> vetements/sacs
+  // Migration: anciennes categories -> chaussures / vetements / sacs
   await sql`UPDATE products SET category = 'vetements' WHERE category = 'casual'`;
   await sql`UPDATE products SET category = 'sacs' WHERE category = 'sport'`;
+  await sql`UPDATE products SET category = 'chaussures' WHERE category = 'sneakers'`;
 
   await sql`
     CREATE TABLE IF NOT EXISTS orders (
