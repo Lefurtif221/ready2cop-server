@@ -57,7 +57,9 @@ router.post('/', auth, upload.single('image'), async (req, res) => {
   try {
     const { name, price, category, description, stock, featured, sizes } = req.body;
     if (!name || !price) return res.status(400).json({ error: 'Nom et prix requis' });
-    const image = req.file ? req.file.filename : 'Chaussures-22.jpeg';
+    let image = 'Chaussures-22.jpeg';
+    if (req.file) image = req.file.filename;
+    else if (req.body.image && String(req.body.image).startsWith('http')) image = req.body.image;
     const result = await sql`
       INSERT INTO products (name, price, category, image, description, stock, featured)
       VALUES (${name}, ${parseInt(price)}, ${category || 'sneakers'}, ${image}, ${description || ''}, ${parseInt(stock) || 0}, ${parseInt(featured) || 0})
@@ -83,7 +85,9 @@ router.put('/:id', auth, upload.single('image'), async (req, res) => {
     const existing = await sql`SELECT * FROM products WHERE id = ${parseInt(req.params.id)}`;
     if (existing.length === 0) return res.status(404).json({ error: 'Produit non trouve' });
     const { name, price, category, description, stock, featured, sizes } = req.body;
-    const image = req.file ? req.file.filename : existing[0].image;
+    let image = existing[0].image;
+    if (req.file) image = req.file.filename;
+    else if (req.body.image && String(req.body.image).startsWith('http')) image = req.body.image;
     const result = await sql`
       UPDATE products SET
         name = ${name || existing[0].name},
